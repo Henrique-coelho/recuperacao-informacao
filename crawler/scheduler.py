@@ -1,5 +1,6 @@
 from urllib import robotparser
 from urllib.parse import ParseResult
+import urllib.parse as parse
 
 from util.threads import synchronized
 from time import sleep
@@ -64,6 +65,13 @@ class Scheduler:
         # https://docs.python.org/3/library/urllib.parse.html
         if self.can_add_page(obj_url,depth):
             #TODO
+            
+            self.set_discovered_urls.add(parse.urlunparse(obj_url))
+            domain = Domain(obj_url.netloc,self.depth_limit)
+            if domain in self.dic_url_per_domain:
+                self.dic_url_per_domain[domain] += [(obj_url,depth)]
+            else:
+                self.dic_url_per_domain[domain] = [(obj_url,depth)]
             return True
         else:
             return False
@@ -74,7 +82,7 @@ class Scheduler:
         Obtém uma nova URL por meio da fila. Essa URL é removida da fila.
         Logo após, caso o servidor não tenha mais URLs, o mesmo também é removido.
         """
-        proximoItem = self.dic_url_per_domain.popitem()
+        proximoItem = self.set_discovered_urls.popitem()
         
         return proximoItem[0], proximoItem[1]
 
