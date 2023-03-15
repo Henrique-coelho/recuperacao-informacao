@@ -52,7 +52,7 @@ class Scheduler:
         """
         :return: True caso a profundidade for menor que a maxima e a url não foi descoberta ainda. False caso contrário.
         """
-        return depth<self.depth_limit and parse.urlunparse(obj_url) not in self.set_discovered_urls
+        return depth<self.depth_limit and obj_url not in self.set_discovered_urls
 
     @synchronized
     def add_new_page(self, obj_url: ParseResult, depth: int) -> bool:
@@ -64,16 +64,13 @@ class Scheduler:
         """
         # https://docs.python.org/3/library/urllib.parse.html
         if self.can_add_page(obj_url,depth):
-            self.set_discovered_urls.add(parse.urlunparse(obj_url))
-            domain = Domain(obj_url.netloc,self.depth_limit)
-            if domain in self.dic_url_per_domain:
-                self.dic_url_per_domain[domain] += [(obj_url,depth)]
-            else:
-                self.dic_url_per_domain[domain] = [(obj_url,depth)]
-                
+            if obj_url.netloc not in self.dic_url_per_domain:
+                self.dic_url_per_domain[Domain(obj_url.netloc, Scheduler.TIME_LIMIT_BETWEEN_REQUESTS)] = []
+            
+            self.dic_url_per_domain[obj_url.netloc].append((obj_url,depth))
+            self.set_discovered_urls.add(obj_url)
             return True
-        else:
-            return False
+        return False
 
     @synchronized
     def get_next_url(self) -> tuple:
@@ -82,23 +79,29 @@ class Scheduler:
         Logo após, caso o servidor não tenha mais URLs, o mesmo também é removido.
         """
 
-        for domain in self.dic_url_per_domain.keys():
-            if not domain.is_accessible():
-                sleep(domain.time_limit_seconds)
-            if len(self.dic_url_per_domain[domain]) == 0:
-                self.dic_url_per_domain.popitem(domain)
-            elif domain.is_accessible():
-                url = self.dic_url_per_domain[domain].pop()
+        while(1):
+            chosen_domains = set()
+            for domain in self.dic_url_per_domain:
+                if not self.dic_url_per_domain[domain]:
+                    chosen_domains.add(domain)
+                    continue
+                if not domain.is_accessible():
+                    continue
                 domain.accessed_now()
-                if self.dic_url_per_domain[domain] == []:
-                    self.dic_url_per_domain.popitem(domain)
-                return url
-            
-        return url
+                return self.dic_url_per_domain[domain].pop(0)
+            for domain in chosen_domains:
+                del self.dic_url_per_domain[domain]
+            if not self.dic_url_per_domain:
+                return(None, None)
+            sleep(1)
 
     def can_fetch_page(self, obj_url: ParseResult) -> bool:
         """
         Verifica, por meio do robots.txt se uma determinada URL pode ser coletada
         """
-
-        return False
+        if obj_url.netloc not in self.dic_robots_per_domain:
+            parser = robotparser.RobotFileParser(obj_url.scheme+"://"+obj_url.netloc+"/robots.txt")
+            parser.read()
+            return parser.can_fetch(self.usr_agent, obj_url.geturl())
+        else:
+            return self.dic_robots_per_domain[obj_url.netloc].can_fetch(self.usr_agent, obj_url.geturl())
