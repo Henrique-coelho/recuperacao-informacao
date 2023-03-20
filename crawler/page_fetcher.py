@@ -17,9 +17,11 @@ class PageFetcher(Thread):
         :return: Conteúdo em binário da URL passada como parâmetro, ou None se o conteúdo não for HTML
         """
 
-        response = None
-
-        return response.content
+        response = requests.get(obj_url.scheme+"://"+obj_url.netloc, auth=(self.obj_scheduler.usr_agent, None))
+        
+        if ("text/html" in response.headers['content-type']):
+            return response.content
+        return None
 
     def discover_links(self, obj_url: ParseResult, depth: int, bin_str_content: bytes):
         """

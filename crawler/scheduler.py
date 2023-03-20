@@ -34,6 +34,11 @@ class Scheduler:
         self.set_discovered_urls = set()
         self.dic_robots_per_domain = {}
 
+        for url in arr_urls_seeds:
+            self.add_new_page(url,0)
+
+
+
     @synchronized
     def count_fetched_page(self) -> None:
         """
@@ -99,9 +104,13 @@ class Scheduler:
         """
         Verifica, por meio do robots.txt se uma determinada URL pode ser coletada
         """
+        
         if obj_url.netloc not in self.dic_robots_per_domain:
             parser = robotparser.RobotFileParser(obj_url.scheme+"://"+obj_url.netloc+"/robots.txt")
             parser.read()
-            return parser.can_fetch(self.usr_agent, obj_url.geturl())
-        else:
-            return self.dic_robots_per_domain[obj_url.netloc].can_fetch(self.usr_agent, obj_url.geturl())
+            self.dic_robots_per_domain[obj_url.netloc] = parser
+        
+        flag = self.dic_robots_per_domain[obj_url.netloc].can_fetch(self.usr_agent, obj_url.geturl())
+        return flag
+        
+
