@@ -69,12 +69,14 @@ class Scheduler:
         """
         # https://docs.python.org/3/library/urllib.parse.html
         if self.can_add_page(obj_url,depth):
+
             if obj_url.netloc not in self.dic_url_per_domain:
-                self.dic_url_per_domain[Domain(obj_url.netloc, Scheduler.TIME_LIMIT_BETWEEN_REQUESTS)] = []
-            
+                new_domain = Domain(obj_url.netloc, Scheduler.TIME_LIMIT_BETWEEN_REQUESTS)
+                self.dic_url_per_domain[new_domain] = []
             self.dic_url_per_domain[obj_url.netloc].append((obj_url,depth))
             self.set_discovered_urls.add(obj_url)
             return True
+        
         return False
 
     @synchronized
@@ -110,7 +112,7 @@ class Scheduler:
             parser.read()
             self.dic_robots_per_domain[obj_url.netloc] = parser
         
-        flag = self.dic_robots_per_domain[obj_url.netloc].can_fetch(self.usr_agent, obj_url.geturl())
-        return flag
+        can_fetch = self.dic_robots_per_domain[obj_url.netloc].can_fetch(self.usr_agent, obj_url.geturl())
+        return can_fetch
         
 
