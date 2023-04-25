@@ -69,11 +69,13 @@ class Scheduler:
         """
         # https://docs.python.org/3/library/urllib.parse.html
         if self.can_add_page(obj_url,depth):
-
-            if obj_url.netloc not in self.dic_url_per_domain:
-                new_domain = Domain(obj_url.netloc, Scheduler.TIME_LIMIT_BETWEEN_REQUESTS)
+            netloc = obj_url.netloc
+            
+            if netloc not in self.dic_url_per_domain:
+                new_domain = Domain(netloc, Scheduler.TIME_LIMIT_BETWEEN_REQUESTS)
                 self.dic_url_per_domain[new_domain] = []
-            self.dic_url_per_domain[obj_url.netloc].append((obj_url,depth))
+                
+            self.dic_url_per_domain[netloc].append((obj_url,depth))
             self.set_discovered_urls.add(obj_url)
             return True
         
@@ -89,18 +91,19 @@ class Scheduler:
         while(1):
             chosen_domains = set()
             for domain in self.dic_url_per_domain:
+                if not domain.is_accessible():
+                    continue
                 if not self.dic_url_per_domain[domain]:
                     chosen_domains.add(domain)
                     continue
-                if not domain.is_accessible():
-                    continue
+
                 domain.accessed_now()
                 return self.dic_url_per_domain[domain].pop(0)
             for domain in chosen_domains:
                 del self.dic_url_per_domain[domain]
             if not self.dic_url_per_domain:
                 return(None, None)
-            sleep(1)
+            sleep(Scheduler.TIME_LIMIT_BETWEEN_REQUESTS)
 
     def can_fetch_page(self, obj_url: ParseResult) -> bool:
         """
