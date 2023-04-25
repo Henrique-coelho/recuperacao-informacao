@@ -1,5 +1,6 @@
 from urllib import robotparser
 from urllib.parse import ParseResult
+from urllib.parse import urlparse
 import urllib.parse as parse
 
 from util.threads import synchronized
@@ -35,9 +36,7 @@ class Scheduler:
         self.dic_robots_per_domain = {}
 
         for url in arr_urls_seeds:
-            self.add_new_page(url,0)
-
-
+            self.add_new_page(urlparse(url),0)
 
     @synchronized
     def count_fetched_page(self) -> None:
@@ -75,8 +74,8 @@ class Scheduler:
                 new_domain = Domain(netloc, Scheduler.TIME_LIMIT_BETWEEN_REQUESTS)
                 self.dic_url_per_domain[new_domain] = []
                 
-            self.dic_url_per_domain[netloc].append((obj_url,depth))
             self.set_discovered_urls.add(obj_url)
+            self.dic_url_per_domain[netloc].append((obj_url,depth))
             return True
         
         return False
