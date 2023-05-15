@@ -57,7 +57,7 @@ class FileIndexTest(unittest.TestCase):
         terms_to_add = [TermOccurrence(2,1,5),
                                         TermOccurrence(3,1,1),
                                         TermOccurrence(1,2,1),
-                                        TermOccurrence(3,2,3)]
+                                        TermOccurrence(3,2,4)]
         
         self.assertEqual(self.index.get_tmp_occur_size(),4, f"Tamanho incorreto da lista")
         
