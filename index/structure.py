@@ -157,7 +157,7 @@ class FileIndex(Index):
 
         self.lst_occurrences_tmp = [None]*FileIndex.TMP_OCCURRENCES_LIMIT
         self.idx_file_counter = 0
-        self.str_idx_file_name = "occur_idx_file"
+        self.str_idx_file_name = None
 
         # metodos auxiliares para verifica o tamanho da lst_occurrences_tmp
         self.idx_tmp_occur_last_element  = -1
@@ -214,12 +214,31 @@ class FileIndex(Index):
         # Ordena pelo term_id, doc_id
         #    Para eficiência, todo o código deve ser feito com o garbage collector desabilitado gc.disable()
         gc.disable()
-        self.idx_file_counter += 1
-        
-        occur_index_X = None
+
         """comparar sempre a primeira posição
         da lista com a primeira posição do arquivo usando os métodos next_from_list e next_from_file
         e use o método write do TermOccurrence para armazenar cada ocorrencia do novo índice ordenado"""
+
+        self.idx_file_counter += 1
+        new_str_index_file_name = "occur_index_" + str(self.idx_file_counter)
+
+        if self.str_idx_file_name is not None:
+            file_term = self.next_from_file(self.str_idx_file_name)
+            while file_term is not None:
+                file_term.write()
+                file_term = self.next_from_file(self.str_idx_file_name)
+
+        list_term = self.next_from_list()
+        while list_term is not None:     
+            list_term.write()
+            list_term = self.next_from_list()
+
+        self.str_idx_file_name = new_str_index_file_name
+        
+        self.lst_occurrences_tmp = [None]*FileIndex.TMP_OCCURRENCES_LIMIT
+
+        self.idx_tmp_occur_last_element  = -1
+        self.idx_tmp_occur_first_element = 0
 
         gc.enable()
 
