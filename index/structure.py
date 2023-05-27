@@ -15,18 +15,21 @@ class Index:
 
     def index(self, term: str, doc_id: int, term_freq: int):
         if term not in self.dic_index:
-            int_term_id = None
+            # Próximo indice
+            int_term_id = len(self.dic_index)
             self.dic_index[term] = self.create_index_entry(int_term_id)
         else:
             int_term_id = self.get_term_id(term)
 
-        if doc_id not in self.set_documents:
-            self.set_documents.add(doc_id)
+        self.set_documents.add(doc_id)
         self.add_index_occur(self.dic_index[term], doc_id, int_term_id, term_freq)
 
     @property
     def vocabulary(self) -> List[str]:
-        return self.dic_index.keys()
+        indexArr = []
+        for i in self.dic_index:
+            indexArr.append(i)
+        return indexArr
 
     @property
     def document_count(self) -> int:
@@ -85,22 +88,24 @@ class TermOccurrence:
         self.term_freq = term_freq
 
     def write(self, idx_file):
-        idx_file.write(self.doc_id.to_bytes(4, byteorder="big"))
-        idx_file.write(self.term_id.to_bytes(4, byteorder="big"))
-        idx_file.write(self.term_freq.to_bytes(4, byteorder="big"))
+        idx_file.write(self.term_id.to_bytes(4,byteorder="big"))
+        idx_file.write(self.doc_id.to_bytes(4,byteorder="big"))
+        idx_file.write(self.term_freq.to_bytes(4,byteorder="big"))
 
     def __hash__(self):
         return hash((self.doc_id, self.term_id))
 
     def __eq__(self, other_occurrence: "TermOccurrence"):
-        if(other_occurrence is None):
+        if other_occurrence is None:
             return False
-        return self.doc_id == other_occurrence.doc_id and self.term_id == other_occurrence.term_id and self.term_freq == other_occurrence.term_freq
+        if (self.doc_id == other_occurrence.doc_id) and (self.term_id == other_occurrence.term_id):
+            return True
+        return False
 
     def __lt__(self, other_occurrence: "TermOccurrence"):
-        if(other_occurrence is None or other_occurrence.term_id is None):
+        if other_occurrence is None:
             return False
-        if(self.term_id < other_occurrence.term_id):
+        if (self.term_id < other_occurrence.term_id):
             return True
         else:
             if (self.term_id == other_occurrence.term_id):
@@ -124,23 +129,24 @@ class HashIndex(Index):
         return []
 
     def add_index_occur(self, entry_dic_index: List[TermOccurrence], doc_id: int, term_id: int, term_freq: int):
-        if entry_dic_index == None:
-            entry_dic_index = TermOccurrence(doc_id,term_id,term_freq)
+        index_occur = TermOccurrence(doc_id, term_id, term_freq)
+        if entry_dic_index is None:
+            entry_dic_index = [index_occur]
         else:
-            entry_dic_index.append(TermOccurrence(doc_id,term_id,term_freq))
+            entry_dic_index.append(index_occur)
+
+             
 
     def get_occurrence_list(self, term: str) -> List:
-        if term in self.dic_index.keys():
-            return self.dic_index[term]
-        else:
+        if term not in self.dic_index:
             return []
+        return self.dic_index[term]
 
     def document_count_with_term(self, term: str) -> int:
-        occurrance = self.get_occurrence_list(term)
-        if len(occurrance) != 0:
-            return len(occurrance)
-        else:
+        occ = self.get_occurrence_list(term)
+        if len(occ) == 0:
             return 0
+        return len(occ)
 
 
 class TermFilePosition:
@@ -182,89 +188,84 @@ class FileIndex(Index):
     def create_index_entry(self, term_id: int) -> TermFilePosition:
         return TermFilePosition(term_id)
 
-
     def add_index_occur(self, entry_dic_index: TermFilePosition, doc_id: int, term_id: int, term_freq: int):
         #complete aqui adicionando um novo TermOccurrence na lista lst_occurrences_tmp
         #não esqueça de atualizar a(s) variável(is) auxiliares apropriadamente
-        
-        if self.idx_tmp_occur_last_element+1<FileIndex.TMP_OCCURRENCES_LIMIT:
-            self.lst_occurrences_tmp[self.idx_tmp_occur_last_element+1] = TermOccurrence(doc_id=doc_id,term_id=term_id, term_freq=term_freq)
+        occ = TermOccurrence(doc_id, term_id, term_freq)
+
+        if (self.idx_tmp_occur_last_element + 1 < FileIndex.TMP_OCCURRENCES_LIMIT):
+            self.lst_occurrences_tmp[self.idx_tmp_occur_last_element + 1] = occ
             self.idx_tmp_occur_last_element += 1
         else:
             self.save_tmp_occurrences()
 
     def next_from_list(self) -> TermOccurrence:
-        if self.get_tmp_occur_size() > 0:
             # obtenha o proximo da lista e armazene em nex_occur
             # não esqueça de atualizar a(s) variável(is) auxiliares apropriadamente
-            next_occur = self.lst_occurrences_tmp[self.idx_tmp_occur_first_element]
+        if self.get_tmp_occur_size() > 0:
+            next_from_list = self.lst_occurrences_tmp[self.idx_tmp_occur_first_element]
             self.lst_occurrences_tmp[self.idx_tmp_occur_first_element] = None
             self.idx_tmp_occur_first_element += 1
-            return next_occur
-        else:
-            return None
+
+            return next_from_list
+        return None
 
     def next_from_file(self, file_pointer) -> TermOccurrence:
         # next_from_file = pickle.load(file_idx)
         if file_pointer is None:
             return None
-        bytes_doc_id = int.from_bytes(file_pointer.read(4), byteorder="big")
-        if not bytes_doc_id:
-            return None
-        bytes_term_id = int.from_bytes(file_pointer.read(4), byteorder="big")
-        if not bytes_doc_id:
-            return None
-        bytes_term_freq = int.from_bytes(file_pointer.read(4), byteorder="big")
-        if not bytes_doc_id:
+        
+        doc_id = int.from_bytes(file_pointer.read(4), byteorder='big')
+        term_id = int.from_bytes(file_pointer.read(4), byteorder='big')
+        term_freq = int.from_bytes(file_pointer.read(4), byteorder='big')
+
+        if doc_id == 0 or term_freq == 0 or term_id == 0:
             return None
 
-        return TermOccurrence(bytes_doc_id, bytes_term_id, bytes_term_freq)
+        return TermOccurrence(term_id, doc_id, term_freq)
 
     def save_tmp_occurrences(self):
 
-        # Ordena pelo term_id, doc_id
-        #    Para eficiência, todo o código deve ser feito com o garbage collector desabilitado gc.disable()
+        # Para eficiência, todo o código deve ser feito com o garbage collector desabilitado gc.disable()
         gc.disable()
-
-        """comparar sempre a primeira posição
-        da lista com a primeira posição do arquivo usando os métodos next_from_list e next_from_file
-        e use o método write do TermOccurrence para armazenar cada ocorrencia do novo índice ordenado"""
-
 
         self.lst_occurrences_tmp.sort(key=lambda e: (e is None, e))
 
         old_file = None if self.idx_file_counter == 0 else open(
             self.str_idx_file_name, 'rb')
-
         self.idx_file_counter += 1
-        self.str_idx_file_name = "occur_idx_file_" + str(self.idx_file_counter) + ".idx"
-   
-        file = open(self.str_idx_file_name,"wb")
-        file_first = self.next_from_file(old_file)
-        list_first = self.next_from_list()
+        self.str_idx_file_name = f"occur_idx_file_{self.idx_file_counter}.idx"
 
-        while file_first != None and list_first != None:
-            if list_first <= file_first:
-                list_first.write(file)
-                list_first = self.next_from_list()
+        new_file = open(self.str_idx_file_name, 'wb')
+
+        """
+            Comparar sempre a primeira posição da lista com a primeira posição do arquivo usando 
+            os métodos next_from_list e next_from_filee use o método write do TermOccurrence para 
+            armazenar cada ocorrencia do novo índice ordenado
+        """
+        nxt_list = self.next_from_list()
+        nxt_file = self.next_from_file(old_file)
+
+        while nxt_file and nxt_list:
+            if nxt_list > nxt_file:
+                nxt_file.write(new_file)
+                nxt_file = self.next_from_file(old_file)
             else:
-                file_first.write(file)
-                file_first = self.next_from_file(old_file)
-            
-        while list_first:
-            list_first.write(file)
-            list_first = self.next_from_list()
-        while file_first:
-            file_first.write(file)
-            file_first = self.next_from_file(old_file)
-
-
-        self.idx_tmp_occur_last_element  = -1
+                nxt_list.write(new_file)
+                nxt_list = self.next_from_list()
+        while nxt_list:
+            nxt_list.write(new_file)
+            nxt_list = self.next_from_list()
+        while nxt_file:
+            nxt_file.write(new_file)
+            nxt_file = self.next_from_file(old_file)
         self.idx_tmp_occur_first_element = 0
+        self.idx_tmp_occur_last_element = -1
 
         if old_file is not None:
             old_file.close()
-        file.close()
+        new_file.close()
+
         gc.enable()
 
     def finish_indexing(self):
@@ -278,41 +279,50 @@ class FileIndex(Index):
         for str_term, obj_term in self.dic_index.items():
             dic_ids_por_termo[obj_term.term_id] = obj_term
 
+
         with open(self.str_idx_file_name, 'rb') as idx_file:
             # navega nas ocorrencias para atualizar cada termo em dic_ids_por_termo
             # apropriadamente
-            file_first = self.next_from_file(idx_file)
+            next_file = self.next_from_file(idx_file)
             position = 0
-            while (file_first):
-                dic = dic_ids_por_termo[file_first.term_id]
-                new_count = dic.doc_count_with_term
+            while (next_file):
+                item_dic = dic_ids_por_termo[next_file.term_id]
+
+                # quantas vezes o termo aparece no arquivo
+                new_count = item_dic.doc_count_with_term
                 if new_count is None:
                     new_count = 0
-                dic.doc_count_with_term = new_count + 1
+                item_dic.doc_count_with_term = new_count + 1
 
-                if dic.term_file_start_pos is None:
-                    dic.term_file_start_pos = position * 12
+                if item_dic.term_file_start_pos is None:
+                    item_dic.term_file_start_pos = position * 12
+                
+                # atualiza posição
+                dic_ids_por_termo[next_file.term_id] = item_dic
+                next_file = self.next_from_file(idx_file)
                 position = position + 1
-                dic_ids_por_termo[file_first.term_id] = dic
-                file_first = self.next_from_file(idx_file)
 
-    def get_occurrence_list(self, term: str) -> List:
+
+    def get_occurrence_list(self,term: str)->List:
+        occ_list = []
+
         if term not in self.dic_index:
-            return []
+            return occ_list
         else:
-            occurrencies = []
             obj_term_file_position = self.dic_index[term]
             search_term = obj_term_file_position.term_id
-            with open(self.str_idx_file_name, "rb") as idx_file:
+            
+            with open(self.str_idx_file_name, 'rb') as idx_file:
                 idx_file.seek(self.dic_index[term].term_file_start_pos)
-                file_first = self.next_from_file(idx_file)
-                while(search_term == file_first.term_id and file_first is not None):
-                    occurrencies.append(file_first)
-                    file_first = self.next_from_file(idx_file)
-            return occurrencies
-
-    def document_count_with_term(self, term: str) -> int:
-        if term not in self.dic_index:
-            return 0
-        else: 
+                next_file = self.next_from_file(idx_file)
+                while(next_file is not None and search_term == next_file.term_id):
+                    occ_list.append(next_file)
+                    next_file = self.next_from_file(idx_file)
+            return occ_list
+    
+    
+    def document_count_with_term(self,term:str) -> int:
+        if term in self.dic_index:
             return self.dic_index[term].doc_count_with_term
+        else: 
+            return 0
