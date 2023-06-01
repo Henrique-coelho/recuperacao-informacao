@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import string
 import html
 from nltk.tokenize import word_tokenize
+from nltk.tokenize import RegexpTokenizer
 import re
 import os
 
@@ -27,7 +28,9 @@ class Cleaner:
     def html_to_plain_text(self, html_doc: str) -> str:
         soup =  BeautifulSoup(html_doc, 'html.parser')
         cleared_html = soup.get_text()
-        return html.unescape(cleared_html)
+        encoded_text = cleared_html.encode('iso-8859-1')
+        decoded_text = encoded_text.decode('utf-8')
+        return decoded_text
 
     @staticmethod
     def read_stop_words(str_file) -> set:
@@ -38,12 +41,14 @@ class Cleaner:
                 [set_stop_words.add(word) for word in arr_words]
         return set_stop_words
 
+    def is_not_word(self, term: str):
+        return bool(re.match(r'^[^a-zA-Z]+$', term))
+
     def is_stop_word(self, term: str):
-        return term in self.set_stop_words
+        return term.lower() in self.set_stop_words
 
     def word_stem(self, term: str):
-        stemmer = SnowballStemmer(language='portuguese')
-        return stemmer.stem(term)
+        return self.stemmer.stem(term)
 
     def remove_accents(self, term: str) -> str:
         return "".join([self.accents_translation_table.get(char, char) for char in term])
@@ -52,12 +57,10 @@ class Cleaner:
         return self.remove_accents(term.lower())
 
     def preprocess_text(self, text: str) -> str or None:
-        punctuation = "!!??..."
-        if text in punctuation:
+        if self.is_not_word(text):
             return None
         if self.perform_stop_words_removal and self.is_stop_word(text):
             return None
-        
         if self.perform_accents_removal:
             text = self.preprocess_word(text)
         if self.perform_stemming:
@@ -78,12 +81,11 @@ class HTMLIndexer:
     def text_word_count(self, plain_text: str):
         dic_word_count = {}
 
-        words = word_tokenize(plain_text)
-        for word in [token for token in re.findall(r'\w+|[^\w\s]', ' '.join(words))]:
+        for word in word_tokenize(plain_text):
             word = self.cleaner.preprocess_text(word)
             if word is not None:
                 dic_word_count[word] = dic_word_count.get(word, 0) + 1
-
+        print(f'dic_word_count: {dic_word_count}')
         return dic_word_count
 
     def index_text(self, doc_id: int, text_html: str):
@@ -96,3 +98,16 @@ class HTMLIndexer:
     def index_text_dir(self, path: str):
         for str_sub_dir in os.listdir(path):
             path_sub_dir = f"{path}/{str_sub_dir}"
+
+            if os.path.isfile(path_sub_dir):
+                if str_sub_dir.endswith(".html"):
+                    with open(path_sub_dir, "r") as file:
+                        doc_id = int(os.path.splitext(str_sub_dir)[0])
+                        html_text = file.read()
+                        
+                        self.index_text(doc_id,html_text)
+            
+            if os.path.isdir(path_sub_dir):
+                self.index_text_dir(path_sub_dir)
+
+            

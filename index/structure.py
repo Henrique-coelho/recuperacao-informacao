@@ -157,6 +157,11 @@ class TermFilePosition:
         self.term_file_start_pos = term_file_start_pos
         self.doc_count_with_term = doc_count_with_term
 
+        if self.term_file_start_pos is None:
+            self.term_file_start_pos = 0
+        if self.doc_count_with_term is None:
+            self.doc_count_with_term = 0
+
     def __str__(self):
         return f"term_id: {self.term_id}, doc_count_with_term: {self.doc_count_with_term}, term_file_start_pos: {self.term_file_start_pos}"
 
@@ -276,9 +281,11 @@ class FileIndex(Index):
         # id_termo -> obj_termo armazene-o em dic_ids_por_termo
         # obj_termo é a instancia TermFilePosition correspondente ao id_termo
         dic_ids_por_termo = {}
+        print("### finish_indexing ###")
         for str_term, obj_term in self.dic_index.items():
             dic_ids_por_termo[obj_term.term_id] = obj_term
-
+            print(f"obj_term: {obj_term}")
+        print("")
 
         with open(self.str_idx_file_name, 'rb') as idx_file:
             # navega nas ocorrencias para atualizar cada termo em dic_ids_por_termo
@@ -311,8 +318,9 @@ class FileIndex(Index):
         else:
             obj_term_file_position = self.dic_index[term]
             search_term = obj_term_file_position.term_id
-            
+
             with open(self.str_idx_file_name, 'rb') as idx_file:
+                print(f'self.dic_index: {self.dic_index}')
                 idx_file.seek(self.dic_index[term].term_file_start_pos)
                 next_file = self.next_from_file(idx_file)
                 while(next_file is not None and search_term == next_file.term_id):
