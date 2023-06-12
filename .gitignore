@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Pasta com dados da wikipedia
+wiki/
+
+# Indexes Processados
+occur*

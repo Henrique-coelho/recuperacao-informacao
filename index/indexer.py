@@ -4,6 +4,8 @@ import string
 import html
 from nltk.tokenize import word_tokenize
 from nltk.tokenize import RegexpTokenizer
+from tqdm import tqdm
+import index.structure as structure
 import re
 import os
 
@@ -28,9 +30,7 @@ class Cleaner:
     def html_to_plain_text(self, html_doc: str) -> str:
         soup =  BeautifulSoup(html_doc, 'html.parser')
         cleared_html = soup.get_text()
-        encoded_text = cleared_html.encode('iso-8859-1')
-        decoded_text = encoded_text.decode('utf-8')
-        return decoded_text
+        return cleared_html
 
     @staticmethod
     def read_stop_words(str_file) -> set:
@@ -85,7 +85,6 @@ class HTMLIndexer:
             word = self.cleaner.preprocess_text(word)
             if word is not None:
                 dic_word_count[word] = dic_word_count.get(word, 0) + 1
-        print(f'dic_word_count: {dic_word_count}')
         return dic_word_count
 
     def index_text(self, doc_id: int, text_html: str):
@@ -95,19 +94,34 @@ class HTMLIndexer:
             self.index.index(term_key, doc_id, term_freq)  
         self.index.finish_indexing()
 
-    def index_text_dir(self, path: str):
-        for str_sub_dir in os.listdir(path):
-            path_sub_dir = f"{path}/{str_sub_dir}"
+    def index_text_dir(self, path: str, top_caller=True):
+        if top_caller:
+            for str_sub_dir in tqdm(os.listdir(path)):
+                path_sub_dir = f"{path}/{str_sub_dir}"
 
-            if os.path.isfile(path_sub_dir):
-                if str_sub_dir.endswith(".html"):
-                    with open(path_sub_dir, "r") as file:
-                        doc_id = int(os.path.splitext(str_sub_dir)[0])
-                        html_text = file.read()
-                        
-                        self.index_text(doc_id,html_text)
-            
-            if os.path.isdir(path_sub_dir):
-                self.index_text_dir(path_sub_dir)
+                if os.path.isfile(path_sub_dir):
+                    if str_sub_dir.endswith(".html"):
+                        with open(path_sub_dir, "r", encoding='utf-8') as file:
+                            doc_id = int(os.path.splitext(str_sub_dir)[0])
+                            html_text = file.read()
+                            
+                            self.index_text(doc_id,html_text)
+                
+                if os.path.isdir(path_sub_dir):
+                    self.index_text_dir(path_sub_dir, False)
+        else:
+            for str_sub_dir in os.listdir(path):
+                path_sub_dir = f"{path}/{str_sub_dir}"
+
+                if os.path.isfile(path_sub_dir):
+                    if str_sub_dir.endswith(".html"):
+                        with open(path_sub_dir, "r", encoding='utf-8') as file:
+                            doc_id = int(os.path.splitext(str_sub_dir)[0])
+                            html_text = file.read()
+                            
+                            self.index_text(doc_id,html_text)
+                
+                if os.path.isdir(path_sub_dir):
+                    self.index_text_dir(path_sub_dir, False)
 
             
