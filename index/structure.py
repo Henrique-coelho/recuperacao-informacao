@@ -270,7 +270,7 @@ class FileIndex(Index):
                 next_from_file = self.next_from_file(file_last_idx)
                 num_occur_saved += 1
                 #self.print_occurrence_writing_status(str_new_idx_file,1, idx_new_file.tell()/file_size)
-            #print(f"{num_occur_saved} ocorrências salvas  no arquivo {str_new_idx_file}...")
+            print(f"{num_occur_saved} ocorrências salvas  no arquivo {str_new_idx_file}...")
             #feche o arquivo, se necessário
             if file_last_idx:
                 file_last_idx.close()

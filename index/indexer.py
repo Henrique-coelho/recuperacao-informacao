@@ -92,7 +92,7 @@ class HTMLIndexer:
         dic_word_count = self.text_word_count(text)
         for term_key, term_freq in dic_word_count.items():
             self.index.index(term_key, doc_id, term_freq)  
-        self.index.finish_indexing()
+        
 
     def index_text_dir(self, path: str, top_caller=True):
         if top_caller:
@@ -109,6 +109,7 @@ class HTMLIndexer:
                 
                 if os.path.isdir(path_sub_dir):
                     self.index_text_dir(path_sub_dir, False)
+            self.index.finish_indexing()
         else:
             for str_sub_dir in os.listdir(path):
                 path_sub_dir = f"{path}/{str_sub_dir}"
