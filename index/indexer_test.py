@@ -23,7 +23,7 @@ class IndexerTest(unittest.TestCase):
                 self.assertEqual(dic_expected[occur.doc_id].term_freq,occur.term_freq, f"A frequencia do termo 'cas' no documento {occur.doc_id} deveria ser {occur.term_freq}")
     
     def test_wiki_idx(self):
-        wiki_idx = Index.read("wiki.idx")
+        wiki_idx = Index.read("wiki_hash.idx")
 
         self.assertTrue(wiki_idx.document_count>60000)
         self.assertEqual(len(wiki_idx.get_occurrence_list("casa")), 7095)
