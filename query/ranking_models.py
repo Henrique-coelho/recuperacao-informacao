@@ -100,7 +100,9 @@ class VectorRankingModel(RankingModel):
 
     @staticmethod
     def idf(doc_count:int, num_docs_with_term:int )->float:
-        return math.log(doc_count/num_docs_with_term, 2)
+        if num_docs_with_term > 0:
+            return math.log(doc_count/num_docs_with_term, 2)
+        return 0
 
     @staticmethod
     def tf_idf(doc_count:int, freq_term:int, num_docs_with_term) -> float:
@@ -138,14 +140,13 @@ class VectorRankingModel(RankingModel):
             for doc_id in doc_ids:
                 sim = 0
                 for term,occurence in query.items():
-                    query_tf_idf = VectorRankingModel.tf_idf(doc_count, occurence.term_freq, num_docs_with_term_per_term[term])
-                    sim += tf_idf[term][doc_id] * query_tf_idf
-                sim /= self.idx_pre_comp_vals.document_norm[doc_id]
+                    if term in num_docs_with_term_per_term:
+                        query_tf_idf = VectorRankingModel.tf_idf(doc_count, occurence.term_freq, num_docs_with_term_per_term.get(term, 0))
+                        sim += tf_idf[term][doc_id] * query_tf_idf
+                
                 if sim != 0:
+                    sim /= self.idx_pre_comp_vals.document_norm[doc_id]
                     documents_weight[doc_id] = sim
-
-
-            print(documents_weight)
 
             #retona a lista de doc ids ordenados de acordo com o TF IDF
             return self.rank_document_ids(documents_weight),documents_weight
