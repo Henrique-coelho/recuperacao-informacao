@@ -60,6 +60,7 @@ class RankingModelTest(unittest.TestCase):
         self.assertEqual(precomp.doc_count,3,"Numero de documentos inesperado")
         for doc_id,norma_esperada in norma_esperada_per_doc.items():
             self.assertAlmostEqual(norma_esperada, precomp.document_norm[doc_id], places=2,msg=f"Norma inesperada do documento {doc_id}")
+            
     def obtem_index_for_query(self,map_query,map_index):
         map_index_for_query = {}
         for term, list_ocur in map_index.items():
