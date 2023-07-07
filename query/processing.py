@@ -195,7 +195,7 @@ class QueryRunner:
 	@staticmethod
 	def main():
 		#leia o indice (base da dados fornecida)
-		index = Index().read("wiki.idx")
+		index = Index().read("wiki_hash.idx")
 
 		dict_docs_title = {}
 		with open("titlePerDoc.dat", encoding="utf8") as arq:
@@ -204,14 +204,15 @@ class QueryRunner:
 				dict_docs_title[int(l[0])] = l[1].strip()
 
 		#Instancie o IndicePreCompModelo para pr ecomputar os valores necessarios para a query
-		print("Precomputando valores atraves do indice...");
+		print("Precomputando valores atraves do indice...")
 		check_time = CheckTime()
-        
+		
 		indexPreCom = IndexPreComputedVals(index)
 
 		check_time.print_delta("Precomputou valores")
 
 		#encontra os docs relevantes
+		print("encontra os docs relevantes...")
 		map_relevance = QueryRunner.get_relevance_per_query()
 		
 		#aquui, peça para o usuário uma query (voce pode deixar isso num while ou fazer um interface grafica se estiver bastante animado ;)

@@ -19,10 +19,10 @@ class IndexPreComputedVals():
         """
         self.document_norm = {}
         doc_count = self.index.document_count
+        print("Iniciando atributos por meio do idx...")
         for doc_id in self.index.set_documents:
             tf_idf_per_term = []
             for term in self.index.vocabulary:
-                
                 occurences = self.index.get_occurrence_list(term)
                 term_freq_query = [occur.term_freq for occur in occurences if occur.doc_id == doc_id and occur.term_id == self.index.get_term_id(term)]
 
